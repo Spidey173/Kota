@@ -192,8 +192,8 @@ class WebGLScene {
     this.height = this.container.offsetHeight || window.innerHeight;
 
     this.scene = new THREE.Scene();
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio <= 1, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.setSize(this.width, this.height);
     this.renderer.setClearColor(this.darkBackground ? 0x000000 : 0xFAF5ED, 1);
     if (this.darkBackground) {
@@ -261,7 +261,7 @@ class WebGLScene {
       fragmentShader: MeshFragmentShader,
     });
 
-    this.geometry = new THREE.PlaneGeometry(1, 1, 128, 128);
+    this.geometry = new THREE.PlaneGeometry(1, 1, 64, 64);
     this.plane = new THREE.Mesh(this.geometry, this.material);
     this.camera.rotation.z = this.activeBackground.rotation;
     this.initResponsivePositioning();
@@ -273,8 +273,10 @@ class WebGLScene {
     this.plane.scale.x = this.activeBackground.widthMultiplier * this.width;
     this.plane.scale.y = this.activeBackground.heightMultiplier * (1.25 * this.height);
     this.plane.scale.z = this.activeBackground.widthMultiplier * this.width;
+
     this.camera.position.x = this.activeBackground.position.x * this.width;
     this.camera.position.y = -this.activeBackground.position.y * this.height;
+
     if (this.plane.material && this.plane.material.uniforms) {
       this.plane.material.uniforms.uRatio.value = this.plane.scale.x / this.plane.scale.y;
     }
@@ -288,9 +290,11 @@ class WebGLScene {
   resize() {
     this.width = this.container.offsetWidth || window.innerWidth;
     this.height = this.container.offsetHeight || window.innerHeight;
+
     this.camera.aspect = this.width / this.height;
     this.camera.fov = 2 * Math.atan(this.height / 2 / this.positionZ) * 180 / Math.PI;
     this.camera.updateProjectionMatrix();
+
     this.renderer.setSize(this.width, this.height);
     if (this.composer) this.composer.setSize(this.width, this.height);
     this.initResponsivePositioning();
@@ -320,8 +324,6 @@ class WebGLScene {
       }
     } else {
       // Light WebGL background:
-      // Slightly lowers opacity when scrolling down from Hero, stays visible through Approach
-      // and Services (all the way through "Growth marketing"), and only fades out at #carousel.
       const targetOp = (this.scrollTriggerOpacity !== undefined && this.scrollTriggerOpacity !== null && this.scrollTriggerOpacity > 0)
         ? this.scrollTriggerOpacity
         : 0.58;
@@ -353,6 +355,14 @@ class WebGLScene {
 
   render() {
     if (!this.isPlaying) return;
+
+    // Skip heavy shader render if the canvas is completely hidden (opacity 0)
+    const currentOpacity = parseFloat(window.getComputedStyle(this.container).opacity || '1');
+    if (currentOpacity <= 0.01) {
+      this._raf = requestAnimationFrame(this.render.bind(this));
+      return;
+    }
+
     this.time += 0.015;
     if (this.reverseUTime) {
       this.uTime -= 0.0018;

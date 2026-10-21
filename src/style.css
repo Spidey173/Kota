@@ -373,16 +373,11 @@ main {
   height: 100vh;
   pointer-events: none;
   z-index: 1;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   background-color: transparent;
-}
-@media (min-width: 769px) {
-  .home_backgroundBlurFilter__p3EL0 {
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    background-color: transparent;
-  }
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 /* ===== HERO SECTION ===== */
